@@ -13,8 +13,8 @@ def computeDerivative(u,dx,opt=1):
 		h       = 2*np.pi/n
 		fac     = h/dx
 		k       = np.fft.fftfreq(n,d=1/n)
+		k[m]    = 0
 		fu      = np.fft.fft(u)
-		
 		dudx    = fac*np.real(np.fft.ifft(cm.sqrt(-1)*k*fu))
 		d2udx2  = fac**2 * np.real(np.fft.ifft(-k*k*fu))
 		d3udx3  = fac**3 * np.real(np.fft.ifft(-cm.sqrt(-1)*k**3*fu))
