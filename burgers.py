@@ -1,12 +1,13 @@
 import json
 import numpy as np
 import cmath as cm
+from scipy.stats import norm
 
 class Utils:
 
     # function to generate fractional Brownian motion (FBM) noise
     def noise(self,alpha,n):
-        x     = np.sqrt(n)*np.random.randn(n)
+        x     = np.sqrt(n)*norm.ppf(np.random.rand(n))
         m     = int(n/2)
         k     = np.abs(np.fft.fftfreq(n,d=1/n))
         k[0]  = 1

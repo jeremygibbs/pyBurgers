@@ -9,8 +9,9 @@ def main():
 	utils    = Utils()
 	settings = Settings('namelist.json')
 
-	# input parameters
+	# input settings
 	nx   = settings.nx
+	mp   = int(nx/2)
 	dx   = 2*np.pi/nx
 	dt   = settings.dt
 	nt   = settings.nt
@@ -18,16 +19,12 @@ def main():
 	diff = settings.diff
 	
 	# initialize velocity field
-	u      = np.zeros(nx)
-	fu     = np.fft.fft(u) 
-	mp     = int(nx/2)
-	fu[mp] = 0
-	u      = np.real(np.fft.ifft(fu))
+	u = np.zeros(nx)
 
 	# initialize random number generator
-	np.random.seed(0)
+	np.random.seed(1)
 
-	# place holder
+	# place holder for right hand side
 	rhsp = 0
  
 	# advance in time
@@ -59,10 +56,10 @@ def main():
 		rhsp       = rhs
 
 		# output to screen every 100 time steps
-		if (t%100==0):
+		if ((t+1)%100==0):
 			CFL = np.max(np.abs(u))*dt/dx          
 			KE	= 0.5*np.var(u)
-			print("%d \t %f \t %f \t %f \t %f \t %f"%(t,t*dt,KE,CFL,np.max(u),np.min(u)))
+			print("%d \t %f \t %f \t %f \t %f \t %f"%(t+1,(t+1)*dt,KE,CFL,np.max(u),np.min(u)))
 
 if __name__ == "__main__":
 	main()
