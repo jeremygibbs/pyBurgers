@@ -1,14 +1,12 @@
 #/usr/bin/env python
-import sys
 import pylab as pl
 import numpy as np
-from burgers import Burgers
-
+from burgers import Utils
 
 def main():
-	
+
 	# instantiate class
-	burgers = Burgers()
+	utils = Utils()
 
 	# input parameters
 	nx   = 8192
@@ -30,25 +28,29 @@ def main():
 
 	# place holder
 	rhsp = 0
-
+ 
 	# advance in time
 	for t in range(int(nt)):
 		
 		# compute derivatives
-		dudx,d2udx2,du2dx,d3udx3 = burgers.computeDerivative(u,dx,1)
+		derivs = utils.derivative(u,dx)
+		du2dx  = derivs['du2dx']
+		d2udx2 = derivs['d2udx2'] 
 
 		# add fractional Brownian motion (FBM) noise
-		f = burgers.addNoise(0.75,nx)
+		f = utils.noise(0.75,nx)
 
 		# compute right hand side
 		rhs = visc * d2udx2 - 0.5*du2dx + np.sqrt(2*diff/dt)*f
+		
+		# advance in time
 		if t == 0:
 			# Euler
 			u_new = u + dt*rhs
 		else:
 			# Adams-Bashforth 2nd
 			u_new = u + dt*(1.5*rhs - 0.5*rhsp)
-
+		
 		fu_new     = np.fft.fft(u_new)
 		fu_new[mp] = 0
 		u_new      = np.real(np.fft.ifft(fu_new))
