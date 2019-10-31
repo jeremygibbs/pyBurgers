@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import cmath as cm
 
@@ -69,3 +70,14 @@ class Utils:
         uf = (1/k)*np.real(np.fft.ifft(fuf))
 
         return uf
+
+class Settings:
+
+    def __init__(self,namelist):
+        with open(namelist) as json_file:
+            data = json.load(json_file)
+        self.nx   = data["nx"]
+        self.nt   = data["nt"]
+        self.dt   = data["dt"]
+        self.visc = data["visc"]
+        self.diff = data["diff"]

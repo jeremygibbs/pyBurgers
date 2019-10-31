@@ -1,21 +1,22 @@
 #/usr/bin/env python
 import pylab as pl
 import numpy as np
-from burgers import Utils
+from burgers import Utils, Settings
 
 def main():
 
 	# instantiate class
-	utils = Utils()
+	utils    = Utils()
+	settings = Settings('namelist.json')
 
 	# input parameters
-	nx   = 8192
+	nx   = settings.nx
 	dx   = 2*np.pi/nx
-	dt   = 1E-4
-	nt   = 2E6
-	visc = 1E-5
-	diff = 1E-6
-
+	dt   = settings.dt
+	nt   = settings.nt
+	visc = settings.visc
+	diff = settings.diff
+	
 	# initialize velocity field
 	u      = np.zeros(nx)
 	fu     = np.fft.fft(u) 
