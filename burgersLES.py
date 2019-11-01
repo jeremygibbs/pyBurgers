@@ -1,13 +1,14 @@
 #/usr/bin/env python
 import pylab as pl
 import numpy as np
-from burgers import Utils, Settings
-
+from burgers import Utils, Settings, BurgersLES
+import sys
 def main():
 
     # instantiate class
     utils    = Utils()
     settings = Settings('namelist.json')
+    LES      = BurgersLES(settings.sgs)
     
     # input settings
     nxDNS = settings.nxDNS
@@ -33,14 +34,22 @@ def main():
         
         # compute derivatives
         derivs = utils.derivative(u,dx)
+        dudx   = derivs['dudx']
         du2dx  = derivs['du2dx']
         d2udx2 = derivs['d2udx2'] 
 
         # add fractional Brownian motion (FBM) noise
-        f = utils.noise(0.75,nxDNS)
+        f  = utils.noise(0.75,nxDNS)
+        ff = utils.filterDown(f,int(nxDNS/nxLES))
+
+        # compute subgrid terms
+        sgs    = LES.subgrid(u,dudx,dx)
+        tau    = sgs["tau"]
+        coeff  = sgs["coeff"]
+        dtaudx = utils.derivative(tau,dx)["dudx"]
 
         # compute right hand side
-        rhs = visc * d2udx2 - 0.5*du2dx + np.sqrt(2*damp/dt)*f
+        rhs = visc * d2udx2 - 0.5*du2dx + np.sqrt(2*damp/dt)*ff - 0.5*dtaudx
         
         # advance in time
         if t == 0:

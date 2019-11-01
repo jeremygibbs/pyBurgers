@@ -55,8 +55,8 @@ class Utils:
         
         return derivatives
     
-    # Fourier filtering
-    def filter(self,u,k):
+    # Fourier filtering from DNS to LES
+    def filterDown(self,u,k):
             
         n   = int(u.shape[0])
         m   = int(n/k)
@@ -69,6 +69,21 @@ class Utils:
         fuf[l+1:m] = fu[n-l+1:n]
         
         uf = (1/k)*np.real(np.fft.ifft(fuf))
+
+        return uf
+
+    # Fourier box filter
+    def filterBox(self,u,k):
+        n   = int(u.shape[0])
+        m   = int(n/k)
+        l   = int(m/2)
+        fu  = np.fft.fft(u)
+        fuf = np.zeros(n,dtype=np.complex)
+        
+        fuf[0:l]     = fu[0:l]
+        fuf[n-l+1:n] = fu[n-l+1:n]
+
+        uf = np.real(np.fft.ifft(fuf))
 
         return uf
     
@@ -100,3 +115,35 @@ class Settings:
         self.dt    = data["dt"]
         self.visc  = data["visc"]
         self.damp  = data["damp"]
+
+class BurgersLES:
+
+    def __init__(self,model):
+        self.model = model
+    
+    def subgrid(self,u,dudx,dx):
+        
+        utils = Utils()
+        n     = int(u.shape[0])
+
+        # constant coefficient Smagorinsky
+        if self.model==1:
+            CS2   = 0.16**2
+            d1    = utils.dealias1(np.abs(dudx),n)
+            d2    = utils.dealias1(dudx,n)
+            d3    = utils.dealias2(d1*d2,n)
+            tau   = -2*CS2*(dx**2)*d3
+            coeff = np.sqrt(CS2)
+
+            sgs = {
+            'tau'   :   tau,
+            'coeff' :   coeff
+            }
+            return sgs
+        # no model
+        else:
+            sgs = {
+            'tau'   :   np.zeros(n),
+            'coeff' :   0
+            }
+            return sgs
