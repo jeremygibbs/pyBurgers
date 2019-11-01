@@ -3,6 +3,7 @@ import pylab as pl
 import numpy as np
 from burgers import Utils, Settings, BurgersLES
 
+# LES run loop
 def main():
 
     # instantiate helper classes
@@ -26,7 +27,7 @@ def main():
     # initialize velocity field
     u = np.zeros(nxLES)
 
-    # if using Deardorff, initialize ke
+    # initialize subgrid tke if using Deardorff
     if model==4:
         kr = np.ones(nxLES)
     else:
@@ -38,7 +39,7 @@ def main():
     # place holder for right hand side
     rhsp = 0
  
-    # advance in time
+    # time loop
     for t in range(int(nt)):
         
         # compute derivatives
@@ -49,28 +50,29 @@ def main():
         d3udx3 = derivs['d3udx3']
 
         # add fractional Brownian motion (FBM) noise
-        f  = utils.noise(0.75,nxDNS)
-        ff = utils.filterDown(f,int(nxDNS/nxLES))
-        
+        fbm  = utils.noise(0.75,nxDNS)
+        fbmf = utils.filterDown(fbm,int(nxDNS/nxLES))
+
         # compute subgrid terms
         sgs    = LES.subgrid(u,dudx,dx,kr)
         tau    = sgs["tau"]
         coeff  = sgs["coeff"]
-        dtaudx = utils.derivative(tau,dx)["dudx"]
         if model==4:
             kr = sgs["kr"]
+        dtaudx = utils.derivative(tau,dx)["dudx"]
 
         # compute right hand side
-        rhs = visc * d2udx2 - 0.5*du2dx + np.sqrt(2*damp/dt)*ff - 0.5*dtaudx
+        rhs = visc * d2udx2 - 0.5*du2dx + np.sqrt(2*damp/dt)*fbmf - 0.5*dtaudx
         
-        # advance in time
+        # time integration
         if t == 0:
-            # Euler
+            # Euler for first time step
             u_new = u + dt*rhs
         else:
-            # Adams-Bashforth 2nd
+            # 2nd-order Adams-Bashforth
             u_new = u + dt*(1.5*rhs - 0.5*rhsp)
         
+        # set Nyquist to zero
         fu_new     = np.fft.fft(u_new)
         fu_new[mp] = 0
         u_new      = np.real(np.fft.ifft(fu_new))

@@ -3,6 +3,7 @@ import numpy as np
 import cmath as cm
 from scipy.stats import norm
 
+# class with helper utilities
 class Utils:
 
     # function to generate fractional Brownian motion (FBM) noise
@@ -19,9 +20,10 @@ class Utils:
         
         return x1
     
-    # function to compute spatial derivatives
+    # function to compute spatial derivatives in spectral space
     def derivative(self,u,dx):
         
+        # signal shape information
         n = int(u.shape[0])
         m = int(n/2)
         
@@ -57,52 +59,74 @@ class Utils:
     
     # Fourier filtering from DNS to LES
     def filterDown(self,u,k):
-            
+        
+        # signal shape information
         n   = int(u.shape[0])
         m   = int(n/k)
         l   = int(m/2)
         
+        # compute fft then filter
         fu  = np.fft.fft(u)
         fuf = np.zeros(m,dtype=np.complex)
-        
         fuf[0:l]   = fu[0:l]
         fuf[l+1:m] = fu[n-l+1:n]
         
+        # return from spectral space
         uf = (1/k)*np.real(np.fft.ifft(fuf))
 
         return uf
 
     # Fourier box filter
     def filterBox(self,u,k):
+        
+        # signal size information
         n   = int(u.shape[0])
         m   = int(n/k)
         l   = int(m/2)
+        
+        # compute fft then filter
         fu  = np.fft.fft(u)
         fuf = np.zeros(n,dtype=np.complex)
-        
         fuf[0:l]     = fu[0:l]
         fuf[n-l+1:n] = fu[n-l+1:n]
 
+        # return from spectral space
         uf = np.real(np.fft.ifft(fuf))
 
         return uf
     
-    # functions to de-alias
+    # function to de-alias
     def dealias1(self,x,n):
+        
+        # signal size information
         m   = int(n/2)
+        
+        # compute fft then de-alias
         fx  = np.fft.fft(x)
         fxp = np.concatenate((fx[0:m+1],np.zeros(m),fx[m+1:n]))
+        
+        # return from spectral space
         xp  = np.real(np.fft.ifft(fxp))
+        
         return xp
     
+    # function to de-alias
     def dealias2(self,xp,n):
+        
+        # signal size information
         m     = int(n/2)
+        
+        # compute fft then de-alias
         fxp   = np.fft.fft(xp)
         fx    = np.concatenate((fxp[0:m+1],fxp[2*m+1:m+n]))
         fx[m] = 0
+        
+        # return from spectral space
         x     = (3/2)*np.real(np.fft.ifft(fx))
+        
         return x
 
+# class to read input settings
 class Settings:
 
     def __init__(self,namelist):
@@ -116,8 +140,10 @@ class Settings:
         self.visc  = data["visc"]
         self.damp  = data["damp"]
 
+# class to model subgrid terms
 class BurgersLES:
 
+    # initializer to get selected subgrid model
     def __init__(self,model):
         self.model = model
         if self.model==1:
@@ -125,10 +151,13 @@ class BurgersLES:
         if self.model==2:
             print("Using dynamic Smagorinsky SGS model")
     
+    # function to compute subgrid terms
     def subgrid(self,u,dudx,dx,kr):
         
+        # signal size information
         n = int(u.shape[0])
 
+        # instantiate helper classes
         utils    = Utils()
         settings = Settings('namelist.json')
 
@@ -199,7 +228,7 @@ class BurgersLES:
             }
             return sgs
         
-        # Deardorff
+        # Deardorff TKE
         if self.model==4:
             Ce = 0.70
             C1 = 0.1

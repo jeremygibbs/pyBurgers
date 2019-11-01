@@ -3,9 +3,10 @@ import pylab as pl
 import numpy as np
 from burgers import Utils, Settings
 
+# DNS run loop
 def main():
 
-    # instantiate class
+    # instantiate helper classes
     utils    = Utils()
     settings = Settings('namelist.json')
 
@@ -27,7 +28,7 @@ def main():
     # place holder for right hand side
     rhsp = 0
  
-    # advance in time
+    # time loop
     for t in range(int(nt)):
         
         # compute derivatives
@@ -36,19 +37,20 @@ def main():
         d2udx2 = derivs['d2udx2'] 
 
         # add fractional Brownian motion (FBM) noise
-        f = utils.noise(0.75,nx)
+        fbm = utils.noise(0.75,nx)
 
         # compute right hand side
-        rhs = visc * d2udx2 - 0.5*du2dx + np.sqrt(2*damp/dt)*f
+        rhs = visc * d2udx2 - 0.5*du2dx + np.sqrt(2*damp/dt)*fbm
         
-        # advance in time
+        # time integration
         if t == 0:
-            # Euler
+            # Euler for first time step
             u_new = u + dt*rhs
         else:
-            # Adams-Bashforth 2nd
+            # 2nd-order Adams-Bashforth
             u_new = u + dt*(1.5*rhs - 0.5*rhsp)
         
+		# set Nyquist to zero
         fu_new     = np.fft.fft(u_new)
         fu_new[mp] = 0
         u_new      = np.real(np.fft.ifft(fu_new))
