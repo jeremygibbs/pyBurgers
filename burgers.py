@@ -165,6 +165,32 @@ class BurgersLES:
             d3    = utils.dealias2(d1*d2,n)
             tau   = -2*CS2*(dx**2)*d3
             coeff = np.sqrt(CS2)
+            
+            sgs = {
+                'tau'   :   tau,
+                'coeff' :   coeff
+            }
+            return sgs
+        
+        # dynamic Wong-Lilly
+        if self.model==3:
+            uf    = utils.filterBox(u,2)
+            uuf   = utils.filterBox(u**2,2)
+            L11   = uuf - uf*uf
+            dudxf = utils.filterBox(dudx,2)
+            M11   = 2*(dx**(4/3))*dudxf*(1-2**(4/3))
+            if np.mean(M11*M11) == 0:
+                CWL = 0
+            else:
+                CWL = np.mean(L11*M11)/np.mean(M11*M11)
+            if CWL < 0:
+                CWL = 0
+            d1    = utils.dealias1(np.abs(dudx),n)
+            d2    = utils.dealias1(dudx,n)
+            d3    = utils.dealias2(d1*d2,n)
+            tau   = -2*CWL*(dx**(4/3))*dudx
+            coeff = CWL
+
             sgs = {
                 'tau'   :   tau,
                 'coeff' :   coeff
