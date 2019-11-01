@@ -71,14 +71,32 @@ class Utils:
         uf = (1/k)*np.real(np.fft.ifft(fuf))
 
         return uf
+    
+    # functions to de-alias
+    def dealias1(self,x,n):
+        m   = int(n/2)
+        fx  = np.fft.fft(x)
+        fxp = np.concatenate((fx[0:m+1],np.zeros(m),fx[m+1:n]))
+        xp  = np.real(np.fft.ifft(fxp))
+        return xp
+    
+    def dealias2(self,xp,n):
+        m     = int(n/2)
+        fxp   = np.fft.fft(xp)
+        fx    = np.concatenate((fxp[0:m+1],fxp[2*m+1:m+n]))
+        fx[m] = 0
+        x     = (3/2)*np.real(np.ft.ifft(fx))
+        return x
 
 class Settings:
 
     def __init__(self,namelist):
         with open(namelist) as json_file:
             data = json.load(json_file)
-        self.nx   = data["nx"]
-        self.nt   = data["nt"]
-        self.dt   = data["dt"]
-        self.visc = data["visc"]
-        self.diff = data["diff"]
+        self.nxDNS = data["dns"]["nx"]
+        self.nxLES = data["les"]["nx"]
+        self.sgs   = data["les"]["sgs"]
+        self.nt    = data["nt"]
+        self.dt    = data["dt"]
+        self.visc  = data["visc"]
+        self.damp  = data["damp"]

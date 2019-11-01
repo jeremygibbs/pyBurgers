@@ -10,7 +10,7 @@ def main():
 	settings = Settings('namelist.json')
 
 	# input settings
-	nx   = settings.nxDNS
+	nx   = settings.nx
 	mp   = int(nx/2)
 	dx   = 2*np.pi/nx
 	dt   = settings.dt
