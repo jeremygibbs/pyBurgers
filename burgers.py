@@ -38,7 +38,7 @@ class Utils:
         # dealiasing needed for du2dx using zero-padding 
         zeroPad = np.zeros(n)
         fu_p    = np.insert(fu,m,zeroPad)
-        u_p     = np.real(np.fft.ifft(fu_p))		
+        u_p     = np.real(np.fft.ifft(fu_p))        
         u2_p    = u_p**2
         fu2_p   = np.fft.fft(u2_p)
         fu2     = fu2_p[0:m]
@@ -85,7 +85,7 @@ class Utils:
         fxp   = np.fft.fft(xp)
         fx    = np.concatenate((fxp[0:m+1],fxp[2*m+1:m+n]))
         fx[m] = 0
-        x     = (3/2)*np.real(np.ft.ifft(fx))
+        x     = (3/2)*np.real(np.fft.ifft(fx))
         return x
 
 class Settings:
