@@ -120,6 +120,10 @@ class BurgersLES:
 
     def __init__(self,model):
         self.model = model
+        if self.model==1:
+            print("Using constant-coefficient Smagorinsky SGS model")
+        if self.model==2:
+            print("Using dynamic Smagorinsky SGS model")
     
     def subgrid(self,u,dudx,dx):
         
@@ -140,6 +144,33 @@ class BurgersLES:
             'coeff' :   coeff
             }
             return sgs
+        
+        # dynamic Smagorinsky
+        if self.model==2:
+            uf    = utils.filterBox(u,2)
+            uuf   = utils.filterBox(u**2,2)
+            L11   = uuf - uf*uf
+            dudxf = utils.filterBox(dudx,2)
+            T     = np.abs(dudx)*dudx
+            Tf    = utils.filterBox(T,2)   
+            M11   = -2*(dx**2)*(4*np.abs(dudxf)*dudxf - Tf )
+            if np.mean(M11*M11) == 0:
+                CS2 = 0
+            else:
+                CS2 = np.mean(L11*M11)/np.mean(M11*M11)
+            if CS2 < 0: 
+                CS2 = 0
+            d1    = utils.dealias1(np.abs(dudx),n)
+            d2    = utils.dealias1(dudx,n)
+            d3    = utils.dealias2(d1*d2,n)
+            tau   = -2*CS2*(dx**2)*d3
+            coeff = np.sqrt(CS2)
+            sgs = {
+                'tau'   :   tau,
+                'coeff' :   coeff
+            }
+            return sgs
+
         # no model
         else:
             sgs = {

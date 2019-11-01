@@ -2,7 +2,7 @@
 import pylab as pl
 import numpy as np
 from burgers import Utils, Settings, BurgersLES
-import sys
+
 def main():
 
     # instantiate class
@@ -36,7 +36,8 @@ def main():
         derivs = utils.derivative(u,dx)
         dudx   = derivs['dudx']
         du2dx  = derivs['du2dx']
-        d2udx2 = derivs['d2udx2'] 
+        d2udx2 = derivs['d2udx2']
+        d3udx3 = derivs['d3udx3']
 
         # add fractional Brownian motion (FBM) noise
         f  = utils.noise(0.75,nxDNS)
@@ -70,6 +71,15 @@ def main():
             CFL = np.max(np.abs(u))*dt/dx          
             KE  = 0.5*np.var(u)
             print("%d \t %f \t %f \t %f \t %f \t %f"%(t+1,(t+1)*dt,KE,CFL,np.max(u),np.min(u)))
+        
+        if((t+1)%1000==0):
+            print(coeff)
+            E1 = np.mean(-tau*dudx)
+            E2 = np.mean(visc*dudx**2)
+            E3 = np.mean(-tau*d3udx3)
+            E4 = np.mean(dudx**3)
+            E5 = np.mean(visc*d2udx2**2)
+            print("%d \t %f \t %f \t %f \t %f \t %f"%(t+1,E1,E2,E3,E4,E5))
 
 if __name__ == "__main__":
     main()
