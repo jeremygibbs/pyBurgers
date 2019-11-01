@@ -125,10 +125,12 @@ class BurgersLES:
         if self.model==2:
             print("Using dynamic Smagorinsky SGS model")
     
-    def subgrid(self,u,dudx,dx):
+    def subgrid(self,u,dudx,dx,kr):
         
-        utils = Utils()
-        n     = int(u.shape[0])
+        n = int(u.shape[0])
+
+        utils    = Utils()
+        settings = Settings('namelist.json')
 
         # constant coefficient Smagorinsky
         if self.model==1:
@@ -194,6 +196,38 @@ class BurgersLES:
             sgs = {
                 'tau'   :   tau,
                 'coeff' :   coeff
+            }
+            return sgs
+        
+        # Deardorff
+        if self.model==4:
+            Ce = 0.70
+            C1 = 0.1
+            dt = settings.dt                                  
+            d1 = utils.dealias1(np.abs(dudx),n)
+            d2 = utils.dealias1(dudx,n)
+            d3 = utils.dealias2(d1*d2,n)
+
+            derivs_kru = utils.derivative(u*kr,dx)
+            derivs_kr  = utils.derivative(kr,dx)
+            dukrdx     = derivs_kru["dudx"]
+            dkrdx      = derivs_kr["dudx"]
+            
+            Vt  = C1*dx*(kr**0.5)
+            tau = -2.*Vt*d3
+            zz  = 2*Vt*dkrdx
+
+            derivs_zz = utils.derivative(zz,dx)
+            dzzdx     = derivs_zz["dudx"]
+            
+            dkr  = ( (-1*dukrdx) + (2*Vt*d3*d3) + dzzdx - (Ce*(kr**1.5)/dx) ) * dt
+            kr   = kr + dkr
+            coeff = C1
+
+            sgs = {
+                'tau'   :   tau,
+                'coeff' :   coeff,
+                'kr'    :   kr
             }
             return sgs
 

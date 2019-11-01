@@ -5,10 +5,9 @@ from burgers import Utils, Settings, BurgersLES
 
 def main():
 
-    # instantiate class
+    # instantiate helper classes
     utils    = Utils()
     settings = Settings('namelist.json')
-    LES      = BurgersLES(settings.sgs)
     
     # input settings
     nxDNS = settings.nxDNS
@@ -17,11 +16,21 @@ def main():
     dx    = 2*np.pi/nxLES
     dt    = settings.dt
     nt    = settings.nt
+    model = settings.sgs
     visc  = settings.visc
     damp  = settings.damp
+
+    # intantiate the LES SGS class
+    LES = BurgersLES(model)
     
     # initialize velocity field
     u = np.zeros(nxLES)
+
+    # if using Deardorff, initialize ke
+    if model==4:
+        kr = np.ones(nxLES)
+    else:
+        kr = 0
 
     # initialize random number generator
     np.random.seed(1)
@@ -42,12 +51,14 @@ def main():
         # add fractional Brownian motion (FBM) noise
         f  = utils.noise(0.75,nxDNS)
         ff = utils.filterDown(f,int(nxDNS/nxLES))
-
+        
         # compute subgrid terms
-        sgs    = LES.subgrid(u,dudx,dx)
+        sgs    = LES.subgrid(u,dudx,dx,kr)
         tau    = sgs["tau"]
         coeff  = sgs["coeff"]
         dtaudx = utils.derivative(tau,dx)["dudx"]
+        if model==4:
+            kr = sgs["kr"]
 
         # compute right hand side
         rhs = visc * d2udx2 - 0.5*du2dx + np.sqrt(2*damp/dt)*ff - 0.5*dtaudx
