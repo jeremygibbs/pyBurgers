@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import cmath as cm
+import netCDF4 as nc
 from scipy.stats import norm
 
 # class with helper utilities
@@ -129,6 +130,7 @@ class Utils:
 # class to read input settings
 class Settings:
 
+    # initializer to get settings from provided namelist
     def __init__(self,namelist):
         with open(namelist) as json_file:
             data = json.load(json_file)

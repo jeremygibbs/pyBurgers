@@ -1,6 +1,7 @@
 #/usr/bin/env python
 import pylab as pl
 import numpy as np
+import netCDF4 as nc
 from burgers import Utils, Settings, BurgersLES
 
 # LES run loop
@@ -38,8 +39,24 @@ def main():
 
     # place holder for right hand side
     rhsp = 0
+    
+    # create output file
+    output = nc.Dataset('pyBurgersLES.nc','w')
+    
+    # add dimensions
+    output.createDimension('t')
+    output.createDimension('x',nxLES)
+
+    # add variables
+    out_t = output.createVariable("t", "f4", ("t"))
+    out_x = output.createVariable("x", "f4", ("x"))
+    out_u = output.createVariable("u", "f4", ("t","x"))
+
+    # write x data
+    out_x[:] = np.arange(0,2*np.pi,dx)
  
     # time loop
+    save_t = 0
     for t in range(int(nt)):
         
         # compute derivatives
@@ -80,9 +97,12 @@ def main():
         rhsp       = rhs
 
         # output to screen every 100 time steps
-        if ((t+1)%100==0):
+        if ((t+1)%1000==0):
             CFL = np.max(np.abs(u))*dt/dx          
             KE  = 0.5*np.var(u)
+            out_t[save_t]   = (t+1)*dt 
+            out_u[save_t,:] = u
+            save_t += 1
             print("%d \t %f \t %f \t %f \t %f \t %f"%(t+1,(t+1)*dt,KE,CFL,np.max(u),np.min(u)))
         
         if((t+1)%1000==0):
