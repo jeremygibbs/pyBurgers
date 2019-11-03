@@ -29,6 +29,8 @@
   * Deardorff 1.5-order TKE
 * Stochastic term is fractional Brownian motion (FBM) noise
 * Output in NetCDF
+* DNS took 70 minutes on a 2019 iMac
+* LES took 62 minutez on a 2019 iMac
 
 # Namelist Settings
 * nx: number of grid points in the x-direction
@@ -45,6 +47,9 @@
 
 # Requirements
 * pyBurgers requires Python 3, NumPy, SciPy, json, and netCDF4
+
+# Disclaimer
+I may have made errors! If you find one, let me know! I have not tried to optimize the code, but may do so in the future.
 
 # License 
 This template is free source code. It comes without any warranty, to the extent permitted by applicable law. You can redistribute it and/or modify it under the terms of the Do What The Fuck You Want To Public License, Version 2, as published by Sam Hocevar. See [http://www.wtfpl.net][1] for more details.
