@@ -30,7 +30,7 @@
 * Stochastic term is fractional Brownian motion (FBM) noise
 * Output in NetCDF
 * DNS took 70 minutes on a 2019 iMac
-* LES took 62 minutez on a 2019 iMac
+* LES took 62 minutes on a 2019 iMac
 
 # Namelist Settings
 * nx: number of grid points in the x-direction
