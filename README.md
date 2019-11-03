@@ -48,6 +48,15 @@
 # Requirements
 * pyBurgers requires Python 3, NumPy, SciPy, json, and netCDF4
 
+# How to run
+```
+python pyBurgersDNS.py
+```
+or 
+```
+python pyBurgersLES.py
+```
+
 # Disclaimer
 I may have made errors! If you find one, [let me know][2]! I have not tried to optimize the code, but may do so in the future.
 
