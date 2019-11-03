@@ -148,10 +148,16 @@ class BurgersLES:
     # initializer to get selected subgrid model
     def __init__(self,model):
         self.model = model
+        if self.model==0:
+            print("[pyBurgers: SGS] \t Running with no model")
         if self.model==1:
-            print("Using constant-coefficient Smagorinsky SGS model")
+            print("[pyBurgers: SGS] \t Constant-coefficient Smagorinsky")
         if self.model==2:
-            print("Using dynamic Smagorinsky SGS model")
+            print("[pyBurgers: SGS] \t Dynamic Smagorinsky")
+        if self.model==3:
+            print("[pyBurgers: SGS] \t Dynamic Wong-Lilly")
+        if self.model==4:
+            print("[pyBurgers: SGS] \t Deardorff 1.5-order TKE")
     
     # function to compute subgrid terms
     def subgrid(self,u,dudx,dx,kr):
@@ -162,7 +168,15 @@ class BurgersLES:
         # instantiate helper classes
         utils    = Utils()
         settings = Settings('namelist.json')
-
+        
+        # no model
+        if self.model==0:
+            sgs = {
+                'tau'   :   np.zeros(n),
+                'coeff' :   0
+            }
+            return sgs
+        
         # constant coefficient Smagorinsky
         if self.model==1:
             CS2   = 0.16**2
@@ -262,10 +276,11 @@ class BurgersLES:
             }
             return sgs
 
-        # no model
+        # exception when none selected
         else:
-            sgs = {
-            'tau'   :   np.zeros(n),
-            'coeff' :   0
-            }
-            return sgs
+            raise Exception("Please choose an SGS model in namelist.\n\
+            0=no model\n\
+            1=constant-coefficient Smagorinsky\n\
+            2=dynamic Smagorinsky\n\
+            3=dynamic Wong-Lilly\n\
+            4=Deardorff 1.5-order TKE")
