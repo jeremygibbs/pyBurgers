@@ -3,6 +3,7 @@ import time
 from sys import stdout
 import numpy as np
 import netCDF4 as nc
+import pyfftw
 from burgers import Utils, Settings
 
 # DNS run loop
@@ -36,8 +37,12 @@ def main():
     
     # initialize velocity field
     print("[pyBurgers: Setup] \t Initialzing velocity field")
-    u = np.zeros(nx)
-
+    #u = np.zeros(nx)
+    u  = pyfftw.empty_aligned(nx,dtype='float64')
+    fu = pyfftw.empty_aligned(nx//2+1,dtype='complex128')
+    fft_object = pyfftw.FFTW(u,fu,direction='FFTW_FORWARD')
+    ifft_object = pyfftw.FFTW(fu,u,direction='FFTW_BACKWARD')
+    
     # initialize random number generator
     np.random.seed(1)
 
@@ -95,16 +100,28 @@ def main():
         # time integration
         if t == 0:
             # Euler for first time step
-            u_new = u + dt*rhs
+            u = u + dt*rhs
         else:
             # 2nd-order Adams-Bashforth
-            u_new = u + dt*(1.5*rhs - 0.5*rhsp)
+            u = u + dt*(1.5*rhs - 0.5*rhsp)
+        
+       # uc = u.copy()
         
         # set Nyquist to zero
-        fu_new     = np.fft.fft(u_new)
-        fu_new[mp] = 0
-        u_new      = np.real(np.fft.ifft(fu_new))
-        u          = u_new
+        fft_object()
+        fu[mp] = 0
+        ifft_object()
+        
+        # test = np.fft.fft(uc)
+        # test[mp] = 0
+        # un = np.real(np.fft.ifft(test))
+        # 
+        # close = np.allclose(u,un)
+        # print(close)
+        #fu_new     = np.fft.fft(u_new)
+        #fu_new[mp] = 0
+        #u_new      = np.real(np.fft.ifft(fu_new))
+        #u          = u_new
         rhsp       = rhs
 
         # output to file every 1000 time steps (0.1 seconds)
@@ -116,7 +133,7 @@ def main():
             # save to disk
             out_t[save_t]   = (t+1)*dt 
             out_k[save_t]   = tke
-            out_u[save_t,:] = u
+            out_u[save_t,:] = np.real(u)
             save_t += 1
 
     # time info
