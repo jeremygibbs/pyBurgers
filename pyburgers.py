@@ -3,28 +3,28 @@ import argparse
 import sys
 import time
 import numpy as np
-#from models import DNS, LES
+from models import Burgers
 from utils import io
 
-class Burgers:
-	
-	# model class initialization
-	def __init__(self,inputSCM,outputSCM,mode):
-		"""Constructor method
-		"""
-		# set the input and output fields
-		self.input  = inputSCM
-		self.output = outputSCM
-		self.mode   = mode
-		
-		# inform users of the simulation type
-		print("[pyBurgers: Info] \t You are running in %s mode"%self.mode.upper())
-		
-		# read configuration variables
-		print("[pyBurgers: Setup] \t Reading input settings")
-		nx         = self.input.nz
-		sgs_model  = self.input.les.sgs
-		
+# class Burgers:
+# 	
+# 	# model class initialization
+# 	def __init__(self,inputSCM,outputSCM,mode):
+# 		"""Constructor method
+# 		"""
+# 		# set the input and output fields
+# 		self.input  = inputSCM
+# 		self.output = outputSCM
+# 		self.mode   = mode
+# 		
+# 		# inform users of the simulation type
+# 		print("[pyBurgers: Info] \t You are running in %s mode"%self.mode.upper())
+# 		
+# 		# read configuration variables
+# 		print("[pyBurgers: Setup] \t Reading input settings")
+# 		nx         = self.input.nz
+# 		sgs_model  = self.input.les.sgs
+# 		
 # 	print("[NSSL-SCM: Setup] \t Creating output file")    
 # 	# set reference to output dimensions
 # 	self.output_dims = {
@@ -104,11 +104,11 @@ if __name__ == "__main__":
 
 	# create Output instance
 	if not outf:
-		outf='pyburgers_%s.nc'%case
+		outf='pyburgers_%s.nc'%mode
 	outputObj = io.Output(outf)
 
 	# create Burgers instance
-	burgers = Burgers(inputObj,outputObj,mode)
+	burgers = Burgers.get_model(mode,inputObj)
 
 	# run the model
 	burgers.run()
@@ -116,5 +116,5 @@ if __name__ == "__main__":
 	# time info
 	t2 = time.time()
 	tt = t2 - t1
-	print("\n[NSSL-SCM: Run] \t Done! Completed in %0.2f seconds"%tt)
+	print("\n[pyBurgers: Run] \t Done! Completed in %0.2f seconds"%tt)
 	print("##############################################################")

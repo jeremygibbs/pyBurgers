@@ -39,7 +39,7 @@ class Input(object):
 				
 				# physics section
 				self.visc  = data["physics"]["visc"]
-				self.damp  = data["physics"]["namp"]
+				self.namp  = data["physics"]["namp"]
 				
 				# output section
 				self.t_save    = data["output"]["t_save"]
