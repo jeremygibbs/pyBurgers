@@ -1,4 +1,5 @@
 import numpy as np
+import pyfftw
 from .burgers import Burgers
 
 class DNS(Burgers):
@@ -16,10 +17,15 @@ class DNS(Burgers):
         self.nx = self.input.nxDNS
         self.mp   = int(self.nx/2)
         self.dx   = 2*np.pi/self.nx
+        
+        # set velocity field
+        self.u        = pyfftw.empty_aligned(self.nx,dtype='float64')
+        self.fu       = pyfftw.empty_aligned(self.nx//2+1,dtype='complex128')
+        self.fft_obj  = pyfftw.FFTW(self.u,self.fu,direction='FFTW_FORWARD')
+        self.ifft_obj = pyfftw.FFTW(self.fu,self.u,direction='FFTW_BACKWARD')
     
     def run(self):
-        print("DNS ran")
-        print(self.dt,self.visc)
+        
 
 # 
 # #/usr/bin/env python
