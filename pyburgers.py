@@ -3,7 +3,7 @@ import argparse
 import sys
 import time
 import numpy as np
-from models import Burgers
+from models import DNS, LES
 from utils import io
 
 # class Burgers:
@@ -74,6 +74,9 @@ from utils import io
 # 		lapse     = self.input.lapse
 # 		ns        = self.input.n_save
 
+class InvalidMode(Exception):
+	pass 
+	
 # main program to run pyBurgers
 if __name__ == "__main__":
 
@@ -106,10 +109,19 @@ if __name__ == "__main__":
 	if not outf:
 		outf='pyburgers_%s.nc'%mode
 	outputObj = io.Output(outf)
-
+	
 	# create Burgers instance
-	burgers = Burgers.get_model(mode,inputObj)
-
+	try:
+		if mode == "dns":
+			burgers = DNS(inputObj)
+		elif mode == "les":
+			burgers = LES(inputObj)
+		else:
+			raise InvalidMode('Error: Invalid mode (must be \"dns\" or \"les\")')
+	except InvalidMode as e:
+		print(e)
+		sys.exit(1)
+		
 	# run the model
 	burgers.run()
 

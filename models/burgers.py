@@ -6,25 +6,21 @@ class Burgers(object):
 	def __init__(self,inputObj):
 		"""Constructor method
 		"""
-		# set the input
-		self.input  = inputObj
+		# set the class values
+		self.input = inputObj
+		self.dt    = self.input.dt
+		self.nt    = self.input.nt
+		self.visc  = self.input.visc
+		self.namp  = self.input.namp
+		self.nx    = 0
+		self.dx    = 0
+		self.u     = 0
 		
-		# set superclass variables
-		self.dt   = self.input.dt
-		self.nt   = self.input.nt
-		self.visc = self.input.visc
-		self.namp = self.input.namp
-
 	@staticmethod
-	def get_model(key,inputObj):
-		
-		if key=="dns":
+	def get_model(mode,inputObj):
+		if mode=="dns":
 			from .burgers_dns import DNS
-			model = DNS(inputObj)
-			model.mode = "dns"
-			return model
-		if key=="les":
+			return DNS(inputObj)
+		if mode=="les":
 			from .burgers_les import LES
-			model = LES(inputObj)
-			model.mode = "les"
-			return model
+			return LES(inputObj)

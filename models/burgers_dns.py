@@ -1,31 +1,39 @@
 import numpy as np
 import pyfftw
-from .burgers import Burgers
+from utils import FBM
 
-class DNS(Burgers):
+class DNS(object):
 
-    # child class initialization
+    # model class initialization
     def __init__(self,inputObj):
+        """Constructor method
+        """
+        
         # inform users of the simulation type
         print("[pyBurgers: Info] \t You are running in DNS mode")
         
-        # initialize parent class
-        super().__init__(inputObj)
+        # initialize random number generator
+        np.random.seed(1)
         
         # read configuration variables
         print("[pyBurgers: Setup] \t Reading input settings")
-        self.nx = self.input.nxDNS
-        self.mp   = int(self.nx/2)
-        self.dx   = 2*np.pi/self.nx
+        self.input = inputObj
+        self.dt    = self.input.dt
+        self.nt    = self.input.nt
+        self.visc  = self.input.visc
+        self.namp  = self.input.namp
+        self.nx    = self.input.nxDNS
+        self.mp    = int(self.nx/2)
+        self.dx    = 2*np.pi/self.nx
         
         # set velocity field
         self.u        = pyfftw.empty_aligned(self.nx,dtype='float64')
         self.fu       = pyfftw.empty_aligned(self.nx//2+1,dtype='complex128')
         self.fft_obj  = pyfftw.FFTW(self.u,self.fu,direction='FFTW_FORWARD')
         self.ifft_obj = pyfftw.FFTW(self.fu,self.u,direction='FFTW_BACKWARD')
-    
-    def run(self):
         
+    def run(self):
+        noise = FBM(0.75,self.nx)
 
 # 
 # #/usr/bin/env python

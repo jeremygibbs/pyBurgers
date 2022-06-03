@@ -1,16 +1,13 @@
 import numpy as np
 from .burgers import Burgers
 
-class LES(Burgers):
+class LES(object):
 
     # child class initialization
     def __init__(self,inputObj):
         
         # inform users of the simulation type
         print("[pyBurgers: Info] \t You are running in LES mode")
-        
-        # initialize parent class
-        super().__init__(inputObj)
         
         # read configuration variables
         print("[pyBurgers: Setup] \t Reading input settings")
