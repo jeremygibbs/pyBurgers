@@ -26,6 +26,9 @@ class DNS(object):
         self.mp    = int(self.nx/2)
         self.dx    = 2*np.pi/self.nx
         
+        # fractional browning motion noise instance
+        self.fbm = FBM(0.75,self.nx)
+        
         # set velocity field
         self.u        = pyfftw.empty_aligned(self.nx,dtype='float64')
         self.fu       = pyfftw.empty_aligned(self.nx//2+1,dtype='complex128')
@@ -33,7 +36,8 @@ class DNS(object):
         self.ifft_obj = pyfftw.FFTW(self.fu,self.u,direction='FFTW_BACKWARD')
         
     def run(self):
-        noise = FBM(0.75,self.nx)
+       
+       noise = self.fbm.compute_noise()
 
 # 
 # #/usr/bin/env python

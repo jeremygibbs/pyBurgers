@@ -74,6 +74,7 @@ from utils import io
 # 		lapse     = self.input.lapse
 # 		ns        = self.input.n_save
 
+# custom error message for user entry
 class InvalidMode(Exception):
 	pass 
 	

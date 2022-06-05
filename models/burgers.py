@@ -15,7 +15,6 @@ class Burgers(object):
 		self.nx    = 0
 		self.dx    = 0
 		self.u     = 0
-		
 	@staticmethod
 	def get_model(mode,inputObj):
 		if mode=="dns":
