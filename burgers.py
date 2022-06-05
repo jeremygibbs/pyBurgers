@@ -114,9 +114,9 @@ if __name__ == "__main__":
 	# create Burgers instance
 	try:
 		if mode == "dns":
-			burgers = DNS(inputObj)
+			burgers = DNS(inputObj,outputObj)
 		elif mode == "les":
-			burgers = LES(inputObj)
+			burgers = LES(inputObj,outputObj)
 		else:
 			raise InvalidMode('Error: Invalid mode (must be \"dns\" or \"les\")')
 	except InvalidMode as e:

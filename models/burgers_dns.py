@@ -1,11 +1,12 @@
 import numpy as np
 import pyfftw
+import sys
 from utils import FBM
 
 class DNS(object):
 
     # model class initialization
-    def __init__(self,inputObj):
+    def __init__(self,inputObj,outbutObj):
         """Constructor method
         """
         
@@ -23,11 +24,15 @@ class DNS(object):
         self.visc  = self.input.visc
         self.namp  = self.input.namp
         self.nx    = self.input.nxDNS
+        self.t_save= self.input.t_save
         self.mp    = int(self.nx/2)
         self.dx    = 2*np.pi/self.nx
         
         # fractional browning motion noise instance
         self.fbm = FBM(0.75,self.nx)
+        
+        # grid length
+        self.x = np.arange(0,2*np.pi,self.dx)
         
         # set velocity field
         self.u        = pyfftw.empty_aligned(self.nx,dtype='float64')
@@ -35,9 +40,48 @@ class DNS(object):
         self.fft_obj  = pyfftw.FFTW(self.u,self.fu,direction='FFTW_FORWARD')
         self.ifft_obj = pyfftw.FFTW(self.fu,self.u,direction='FFTW_BACKWARD')
         
+        # other fields
+        self.tke = np.zeros(1)
+        
+        # output
+        self.output = outbutObj
+        self.output_dims = {
+            't' : 0,
+            'x' : self.nx
+        	}
+        self.output.set_dims(self.output_dims)
+        
+        # set reference to output fields
+        self.output_fields = {
+        	'x'   : self.x,
+        	'u'   : np.real(self.u),
+        	'tke' : self.tke[0],
+        }
+        self.output.set_fields(self.output_fields)
+        
+        # write initial data
+        self.output.save(self.output_fields,0,0,initial=True)
+        
+        
     def run(self):
-       
-       noise = self.fbm.compute_noise()
+        
+        # time loop
+        for t in range(1,1001):
+            
+            # get current time
+            looptime = t*self.dt
+            sys.stdout.write("\r[PyBurgers: Run] \t Running for time %05.2f of %05.2f"%(looptime,int(self.nt)*self.dt))
+            sys.stdout.flush()
+            
+            noise = self.fbm.compute_noise()
+            self.u[:] = self.u[:] + noise
+            # write output
+            if (t%self.t_save==0):
+                t_out = int(t/self.t_save)
+                self.output.save(self.output_fields,t_out,looptime,initial=False)
+                
+        # close output file       
+        self.output.close()
 
 # 
 # #/usr/bin/env python

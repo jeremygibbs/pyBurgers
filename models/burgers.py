@@ -15,11 +15,12 @@ class Burgers(object):
 		self.nx    = 0
 		self.dx    = 0
 		self.u     = 0
+		
 	@staticmethod
 	def get_model(mode,inputObj):
 		if mode=="dns":
 			from .burgers_dns import DNS
-			return DNS(inputObj)
+			return DNS(inputObj,outputObj)
 		if mode=="les":
 			from .burgers_les import LES
-			return LES(inputObj)
+			return LES(inputObj,outputObj)
