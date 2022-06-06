@@ -1,5 +1,4 @@
 import numpy as np
-from .burgers import Burgers
 
 class LES(object):
 
