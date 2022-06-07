@@ -142,7 +142,7 @@ class Output(object):
 				else:
 					self.fields_time[field][tidx] = fields[field]
 			else:
-				self.fields_time[field][tidx,:] = fields[field]
+				self.fields_time[field][tidx,:] = np.real(fields[field])
 	
 		# sync
 		self.outfile.sync()

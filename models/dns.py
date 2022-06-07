@@ -1,7 +1,7 @@
 import numpy as np
 import pyfftw
 import sys
-from utils import FBM
+from utils import FBM, Derivatives
 
 class DNS(object):
 
@@ -31,14 +31,17 @@ class DNS(object):
         # fractional browning motion noise instance
         self.fbm = FBM(0.75,self.nx)
         
+        # derivatives object
+        self.derivs = Derivatives(self.nx,self.dx)
+        
         # grid length
         self.x = np.arange(0,2*np.pi,self.dx)
         
         # set velocity field
-        self.u        = pyfftw.empty_aligned(self.nx,dtype='float64')
-        self.fu       = pyfftw.empty_aligned(self.nx//2+1,dtype='complex128')
-        self.fft_obj  = pyfftw.FFTW(self.u,self.fu,direction='FFTW_FORWARD')
-        self.ifft_obj = pyfftw.FFTW(self.fu,self.u,direction='FFTW_BACKWARD')
+        self.u    = pyfftw.empty_aligned(self.nx,dtype='complex128')
+        self.fu   = pyfftw.empty_aligned(self.nx,dtype='complex128')
+        self.fft  = pyfftw.FFTW(self.u,self.fu,direction='FFTW_FORWARD')
+        self.ifft = pyfftw.FFTW(self.fu,self.u,direction='FFTW_BACKWARD')
         
         # other fields
         self.tke = np.zeros(1)
@@ -54,8 +57,8 @@ class DNS(object):
         # set reference to output fields
         self.output_fields = {
         	'x'   : self.x,
-        	'u'   : np.real(self.u),
-        	'tke' : self.tke[0],
+        	'u'   : self.u,
+        	'tke' : self.tke,
         }
         self.output.set_fields(self.output_fields)
         
@@ -65,19 +68,47 @@ class DNS(object):
         
     def run(self):
         
+        # placeholder 
+        rhsp = 0
+        
         # time loop
-        for t in range(1,1001):
+        for t in range(1,10001):
             
             # get current time
             looptime = t*self.dt
             sys.stdout.write("\r[PyBurgers: Run] \t Running for time %05.2f of %05.2f"%(looptime,int(self.nt)*self.dt))
             sys.stdout.flush()
             
+            # compute derivative
+            derivatives = self.derivs.compute(self.u,[2,'sq'])
+            d2udx2 = derivatives['2']
+            du2dx  = derivatives['sq']
+            
+            # add fractional Brownian motion (FBM) noise
             noise = self.fbm.compute_noise()
-            self.u[:] = self.u[:] + noise
+            
+            # compute right hand side
+            rhs = self.visc * d2udx2 - 0.5*du2dx + np.sqrt(2*self.namp/self.dt)*noise
+            
+            # time integration
+            if t == 0:
+                # Euler for first time step
+                self.u[:] = self.u[:] + self.dt*rhs
+            else:
+                # 2nd-order Adams-Bashforth
+                self.u[:] = self.u[:] + self.dt*(1.5*rhs - 0.5*rhsp)
+            
+            # set Nyquist to zero
+            self.fft()
+            self.fu[self.mp] = 0
+            self.ifft()
+            
+            rhsp = rhs
+            
             # write output
             if (t%self.t_save==0):
-                t_out = int(t/self.t_save)
+                t_out       = int(t/self.t_save)
+                self.tke[:] = np.var(self.u)
                 self.output.save(self.output_fields,t_out,looptime,initial=False)
                 
         # close output file       
