@@ -1,18 +1,27 @@
 import numpy as np
+import pyfftw
+import sys
+from utils import FBM, Derivatives
 
 class LES(object):
 
-    # child class initialization
-    def __init__(self,inputObj):
+    # model class initialization
+    def __init__(self,inputObj,outbutObj):
+        """Constructor method
+        """
         
         # inform users of the simulation type
         print("[pyBurgers: Info] \t You are running in LES mode")
         
+        # initialize random number generator
+        np.random.seed(1)
+        
         # read configuration variables
         print("[pyBurgers: Setup] \t Reading input settings")
-        self.nx = self.input.nxLES
-        self.mp   = int(self.nx/2)
-        self.dx   = 2*np.pi/self.nx
+        self.input = inputObj
+        self.nx    = self.input.nxLES
+        self.mp    = int(self.nx/2)
+        self.dx    = 2*np.pi/self.nx
         
     def run(self):
         print("LES ran")
