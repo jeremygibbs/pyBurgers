@@ -16,8 +16,8 @@ class SGS(object):
 			return SmagDynamic(input)
 		if model == 3:
 			from .sgs_wonglilly import WongLilly
-			return WongLilly(nx,dx)
-		if model == 3:
+			return WongLilly(input)
+		if model == 4:
 			from .sgs_deardorff import Deardorff
 			return Deardorff(input)
 	
@@ -28,9 +28,9 @@ class SGS(object):
 		
 		# user values
 		self.input = input
-		self.nx    = input.nx
-		self.dx    = input.dx
 		self.dt    = input.dt
+		self.nx    = input.nxLES
+		self.dx    = 2*np.pi/self.nx
 		
 		# sgs terms
 		self.sgs = {

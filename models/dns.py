@@ -1,3 +1,4 @@
+import multiprocessing
 import numpy as np
 import pyfftw
 import sys
@@ -15,6 +16,10 @@ class DNS(object):
         
         # initialize random number generator
         np.random.seed(1)
+        
+        # Configure pyfftw
+        fftw_nthreads = 1
+        fftw_planning = "FFTW_ESTIMATE"
         
         # read configuration variables
         print("[pyBurgers: Setup] \t Reading input settings")
@@ -40,8 +45,16 @@ class DNS(object):
         # set velocity field
         self.u    = pyfftw.empty_aligned(self.nx,dtype='complex128')
         self.fu   = pyfftw.empty_aligned(self.nx,dtype='complex128')
-        self.fft  = pyfftw.FFTW(self.u,self.fu,direction='FFTW_FORWARD')
-        self.ifft = pyfftw.FFTW(self.fu,self.u,direction='FFTW_BACKWARD')
+        self.fft  = pyfftw.FFTW(self.u,
+                                self.fu,
+                                direction='FFTW_FORWARD',
+                                flags=(fftw_planning,),
+                                threads=fftw_nthreads)
+        self.ifft = pyfftw.FFTW(self.fu,
+                                self.u,
+                                direction='FFTW_BACKWARD',
+                                flags=(fftw_planning,),
+                                threads=fftw_nthreads)
         
         # other fields
         self.tke = np.zeros(1)
@@ -72,7 +85,7 @@ class DNS(object):
         rhsp = 0
         
         # time loop
-        for t in range(1,10001):
+        for t in range(1,30001):
             
             # get current time
             looptime = t*self.dt
@@ -108,8 +121,14 @@ class DNS(object):
             
             # write output
             if (t%self.t_save==0):
-                t_out       = int(t/self.t_save)
+                
+                # time index
+                t_out = int(t/self.t_save)
+                
+                # turbulence kinetic energy
                 self.tke[:] = np.var(self.u)
+                
+                # save fields
                 self.output.save(self.output_fields,t_out,looptime,initial=False)
                 
         # close output file       

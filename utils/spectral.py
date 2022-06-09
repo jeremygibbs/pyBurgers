@@ -1,3 +1,4 @@
+import multiprocessing
 import sys
 import time
 import cmath as cm
@@ -19,6 +20,10 @@ class Derivatives(object):
 		self.k         = np.abs(np.fft.fftfreq(self.nx,d=1/self.nx))
 		self.k[self.m] = 0
 		
+		# Configure pyfftw
+		fftw_nthreads = 1
+		fftw_planning = "FFTW_ESTIMATE"
+		
 		# pyfftw arrays
 		self.u   = pyfftw.empty_aligned(nx, np.complex128)
 		self.fu  = pyfftw.empty_aligned(nx, np.complex128)
@@ -35,26 +40,26 @@ class Derivatives(object):
 		self.fft = pyfftw.FFTW(self.u,
 							   self.fu,
 							   direction="FFTW_FORWARD",
-							   flags=("FFTW_ESTIMATE",),
-							   threads=1)
+							   flags=(fftw_planning,),
+							   threads=fftw_nthreads)
 		
 		self.ifft = pyfftw.FFTW(self.fun,
 								self.der,
 								direction="FFTW_BACKWARD",
-								flags=("FFTW_ESTIMATE",),
-								threads=1)
+								flags=(fftw_planning,),
+								threads=fftw_nthreads)
 								
 		self.fftp = pyfftw.FFTW(self.up,
 		                        self.fup,
 		                        direction="FFTW_FORWARD",
-		                        flags=("FFTW_ESTIMATE",),
-		                        threads=1)
+		                        flags=(fftw_planning,),
+		                        threads=fftw_nthreads)
 		 
 		self.ifftp = pyfftw.FFTW(self.fup,
 		                         self.up,
 		                         direction="FFTW_BACKWARD",
-		                         flags=("FFTW_ESTIMATE",),
-		                         threads=1)
+		                         flags=(fftw_planning,),
+		                         threads=fftw_nthreads)
 	
 	def compute(self,u,order):
 		
@@ -105,6 +110,10 @@ class Dealias(object):
 		# computed values
 		self.m = int(self.nx/2)
 		
+		# Configure pyfftw
+		fftw_nthreads = 1#multiprocessing.cpu_count()
+		fftw_planning = "FFTW_ESTIMATE"
+		
 		# pyfftw arrays
 		self.x  = pyfftw.empty_aligned(self.nx, np.complex128)
 		self.fx = pyfftw.empty_aligned(self.nx, np.complex128)
@@ -119,26 +128,26 @@ class Dealias(object):
 		self.fft = pyfftw.FFTW(self.x,
 							   self.fx,
 							   direction="FFTW_FORWARD",
-							   flags=("FFTW_ESTIMATE",),
-							   threads=1)
+							   flags=(fftw_planning,),
+							   threads=fftw_nthreads)
 		
 		self.ifft = pyfftw.FFTW(self.fx,
 								self.x,
 								direction="FFTW_BACKWARD",
-								flags=("FFTW_ESTIMATE",),
-								threads=1)
+								flags=(fftw_planning,),
+								threads=fftw_nthreads)
 								
 		self.fftp = pyfftw.FFTW(self.xp,
 								self.fxp,
 								direction="FFTW_FORWARD",
-								flags=("FFTW_ESTIMATE",),
-								threads=1)
+								flags=(fftw_planning,),
+								threads=fftw_nthreads)
 		 
 		self.ifftp = pyfftw.FFTW(self.fxp,
 								 self.xp,
 								 direction="FFTW_BACKWARD",
-								 flags=("FFTW_ESTIMATE",),
-								 threads=1)
+								 flags=(fftw_planning,),
+								 threads=fftw_nthreads)
 	
 	def compute(self,x):
 		
@@ -155,7 +164,7 @@ class Dealias(object):
 		self.ifftp()
 		
 		# store xp in temp
-		self.temp[:] = xp[:]
+		self.temp[:] = self.xp[:]
 		
 		# change x to abs(x)
 		self.x[:] = np.abs(x)
@@ -176,7 +185,7 @@ class Dealias(object):
 		self.fftp()
 		
 		# de-alias fxp
-		self.fu[:] = np.concatenate((self.fxp[0:self.m+1],self.fxp[2*self.m+1:self.m+self.nx]))
+		self.fx[:] = np.concatenate((self.fxp[0:self.m+1],self.fxp[2*self.m+1:self.m+self.nx]))
 		
 		# compute ifft of fx
 		self.ifft()
@@ -186,10 +195,14 @@ class Dealias(object):
 
 class Filter(object):
 		
-		def __init__(self,nx):
+		def __init__(self,nx,nx2=None):
 			
 			# user values
 			self.nx = nx
+			
+			# Configure pyfftw
+			fftw_nthreads = 1#multiprocessing.cpu_count()
+			fftw_planning = "FFTW_ESTIMATE"
 			
 			# pyfftw arrays
 			self.x   = pyfftw.empty_aligned(self.nx, np.complex128)
@@ -200,19 +213,37 @@ class Filter(object):
 			self.fft = pyfftw.FFTW(self.x,
 								   self.fx,
 								   direction="FFTW_FORWARD",
-								   flags=("FFTW_ESTIMATE",),
-								   threads=1)
+								   flags=(fftw_planning,),
+								   threads=fftw_nthreads)
 			
 			self.ifft = pyfftw.FFTW(self.fxf,
 									self.x,
 									direction="FFTW_BACKWARD",
-									flags=("FFTW_ESTIMATE",),
-									threads=1)
+									flags=(fftw_planning,),
+									threads=fftw_nthreads)
 		
-		def cutoff(x,ratio):
+			# check for optional larger nx (for downscaling from DNS->LES)
+			if (nx2):
+				
+				# user value
+				self.nx2 = nx2
+				
+				# pyfftw arrays
+				self.x2   = pyfftw.empty_aligned(self.nx2, np.complex128)
+				self.fx2  = pyfftw.empty_aligned(self.nx2, np.complex128)
+				
+				# pyfftw functions
+				self.fft2 = pyfftw.FFTW(self.x2,
+									    self.fx2,
+									    direction="FFTW_FORWARD",
+									    flags=("FFTW_ESTIMATE",),
+									    threads=4)
+		
+		# spectral cutoff filter
+		def cutoff(self,x,ratio):
 			
 			# signal size information
-			m = int(n/ratio)
+			m = int(self.nx/ratio)
 			l = int(m/2)
 			
 			# copy input array
@@ -222,11 +253,34 @@ class Filter(object):
 			self.fft()
 			
 			# filter fx
-			self.fxf[0:l] = self.fu[0:l]
-			self.fxf[self.nx-l+1:self.nx] = self.fu[self.nx-l+1:self.nx]
+			self.fxf[0:l] = self.fx[0:l]
+			self.fxf[self.nx-l+1:self.nx] = self.fx[self.nx-l+1:self.nx]
 			
 			# compute ifft of fxf
 			self.ifft()
 			
 			# return filtered x
 			return np.real(self.x)
+		
+		# Fourier filtering from DNS to LES
+		def downscale(self,x,ratio):
+			
+			# copy input array
+			self.x2[:] = x
+			
+			# signal shape information
+			l  = int(self.nx/2)
+						
+			# compute fft of larger series
+			self.fft2()
+						
+			# filter
+			self.fxf[l] = 0
+			self.fxf[0:l] = self.fx2[0:l]
+			self.fxf[l+1:self.nx] = self.fx2[self.nx2-l+1:self.nx2]
+			
+			# compute the ifft
+			self.ifft()
+			
+			# return filtered downscaled field
+			return (1/ratio)*np.real(self.x)

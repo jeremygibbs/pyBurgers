@@ -5,7 +5,7 @@ from utils import FBM, Derivatives, Dealias, Filter
 class WongLilly(SGS):
 	
 	# model class initialization
-	def __init__(self,nx,dx):
+	def __init__(self,input):
 		"""Constructor method
 		"""
 		
@@ -13,7 +13,7 @@ class WongLilly(SGS):
 		super().__init__(input)
 		
 		# inform users of the sgs model type
-		print("[pyBurgers: SGS] \t Using the Wong-Lilly SGS Model")
+		print("[pyBurgers: SGS] \t Using the Wong-Lilly model")
 		
 		# De-alias object
 		self.dealias = Dealias(self.nx)

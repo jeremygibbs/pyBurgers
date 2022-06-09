@@ -13,9 +13,6 @@ class InvalidMode(Exception):
 # main program to run pyBurgers
 if __name__ == "__main__":
 
-	# let's time this thing
-	t1 = time.time()
-
 	# a nice welcome message
 	print("##############################################################")
 	print("#                                                            #")
@@ -54,10 +51,13 @@ if __name__ == "__main__":
 	except InvalidMode as e:
 		print(e)
 		sys.exit(1)
-		
+	
+	# let's time this thing
+	t1 = time.time()
+	
 	# run the model
 	burgers.run()
-
+	
 	# time info
 	t2 = time.time()
 	tt = t2 - t1

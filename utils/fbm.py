@@ -1,3 +1,4 @@
+import multiprocessing
 import numpy as np
 import pyfftw
 from scipy.stats import norm
@@ -15,6 +16,10 @@ class FBM(object):
 		self.k    = np.abs(np.fft.fftfreq(n,d=1/n))
 		self.k[0] = 1
 		
+		# Configure pyfftw
+		fftw_nthreads = 1
+		fftw_planning = "FFTW_ESTIMATE"
+		
 		# pyfftw arrays
 		self.x     = pyfftw.empty_aligned(n, np.complex128)
 		self.fx    = pyfftw.empty_aligned(n, np.complex128)
@@ -25,14 +30,14 @@ class FBM(object):
 		self.fft = pyfftw.FFTW(self.x,
 							   self.fx,
 							   direction="FFTW_FORWARD",
-		                       flags=("FFTW_ESTIMATE",),
-		                       threads=1)
+		                       flags=(fftw_planning,),
+		                       threads=fftw_nthreads)
 		
 		self.ifft = pyfftw.FFTW(self.fxn,
 		                        self.noise,
 		                        direction="FFTW_BACKWARD",
-		                        flags=("FFTW_ESTIMATE",),
-		                        threads=1)
+		                        flags=(fftw_planning,),
+		                        threads=fftw_nthreads)
 		
 	def compute_noise(self):
 		

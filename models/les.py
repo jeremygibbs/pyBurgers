@@ -1,7 +1,9 @@
+import multiprocessing
 import numpy as np
 import pyfftw
 import sys
-from utils import FBM, Derivatives
+from .sgs import SGS
+from utils import FBM, Derivatives, Filter
 
 class LES(object):
 
@@ -16,199 +18,180 @@ class LES(object):
         # initialize random number generator
         np.random.seed(1)
         
+        # Configure pyfftw
+        fftw_nthreads = 1
+        fftw_planning = "FFTW_ESTIMATE"
+        
         # read configuration variables
         print("[pyBurgers: Setup] \t Reading input settings")
         self.input = inputObj
+        self.dt    = self.input.dt
+        self.nt    = self.input.nt
+        self.visc  = self.input.visc
+        self.namp  = self.input.namp
         self.nx    = self.input.nxLES
+        self.nxDNS = self.input.nxDNS
+        self.model = self.input.sgs
+        self.t_save= self.input.t_save
         self.mp    = int(self.nx/2)
         self.dx    = 2*np.pi/self.nx
         
+        # fractional browning motion noise instance
+        # make same size as DNS
+        self.fbm = FBM(0.75,self.nxDNS)
+        
+        # derivatives object
+        self.derivs = Derivatives(self.nx,self.dx)
+        
+        # filters instance
+        self.filter = Filter(self.nx,nx2=self.nxDNS)
+        
+        # sgs model object
+        self.subgrid = SGS.get_model(self.model,self.input)
+        
+        # grid length
+        self.x = np.arange(0,2*np.pi,self.dx)
+        
+        # set velocity field
+        self.u    = pyfftw.empty_aligned(self.nx,dtype='complex128')
+        self.fu   = pyfftw.empty_aligned(self.nx,dtype='complex128')
+        self.fft  = pyfftw.FFTW(self.u,
+                                self.fu,
+                                direction='FFTW_FORWARD',
+                                flags=(fftw_planning,),
+                                threads=fftw_nthreads)
+        self.ifft = pyfftw.FFTW(self.fu,
+                                self.u,
+                                direction='FFTW_BACKWARD',
+                                flags=(fftw_planning,),
+                                threads=fftw_nthreads)
+        
+        # initialize subgrid tke if using Deardorff SGS model
+        if self.model==4:
+            self.tke_sgs = np.ones(self.nx)
+        else: 
+            self.tke_sgs = 0
+        
+        # other fields
+        self.tke      = np.zeros(1)
+        self.C_sgs    = np.zeros(1)
+        self.diss_sgs = np.zeros(1)
+        self.diss_mol = np.zeros(1)
+        self.ens_prod = np.zeros(1)
+        self.ens_dsgs = np.zeros(1)
+        self.ens_dmol = np.zeros(1)
+        
+        # output
+        self.output = outbutObj
+        self.output_dims = {
+            't' : 0,
+            'x' : self.nx
+            }
+        self.output.set_dims(self.output_dims)
+        
+        # set reference to output fields
+        self.output_fields = {
+            'x'            : self.x,
+            'u'            : self.u,
+            'tke'          : self.tke,
+            'C_sgs'        : self.C_sgs,
+            'diss_sgs'     : self.diss_sgs,
+            'diss_mol'     : self.diss_mol,
+            'ens_prod'     : self.ens_prod,
+            'ens_diss_sgs' : self.ens_dsgs,
+            'ens_diss_mol' : self.ens_dmol
+        }
+        # add subgrid tke if using Deardorff model
+        if self.model==4:
+            self.output_fields['tke_sgs'] = self.tke_sgs
+        
+        self.output.set_fields(self.output_fields)
+        
+        # write initial data
+        self.output.save(self.output_fields,0,0,initial=True)
+        
     def run(self):
-        print("LES ran")
-        print(self.dt,self.visc)
-    
-# #/usr/bin/env python
-# import time
-# from sys import stdout
-# import numpy as np
-# import netCDF4 as nc
-# from burgers import Utils, Settings, BurgersLES
-# 
-# # LES run loop
-# def main():
-# 
-#     # let's time this thing
-#     t1 = time.time()
-# 
-#     # a nice welcome message
-#     print("##############################################################")
-#     print("#                                                            #")
-#     print("#                   Welcome to pyBurgers                     #")
-#     print("#      A fun tool to study turbulence using DNS and LES      #")
-#     print("#                                                            #")
-#     print("##############################################################")
-#     print("[pyBurgers: Info] \t You are running in LES mode")
-# 
-#     # instantiate helper classes
-#     print("[pyBurgers: Setup] \t Reading input settings")
-#     utils    = Utils()
-#     settings = Settings('namelist.json')
-#     
-#     # input settings
-#     nxDNS = settings.nxDNS
-#     nxLES = settings.nxLES
-#     mp    = int(nxLES/2)
-#     dx    = 2*np.pi/nxLES
-#     dt    = settings.dt
-#     nt    = settings.nt
-#     model = settings.sgs
-#     visc  = settings.visc
-#     damp  = settings.damp
-# 
-#     # intantiate the LES SGS class
-#     LES = BurgersLES(model)
-#     
-#     # initialize velocity field
-#     print("[pyBurgers: Setup] \t Initialzing velocity field")
-#     u = np.zeros(nxLES)
-# 
-#     # initialize subgrid tke if using Deardorff
-#     if model==4:
-#         kr = np.ones(nxLES)
-#     else:
-#         kr = 0
-# 
-#     # initialize random number generator
-#     np.random.seed(1)
-# 
-#     # place holder for right hand side
-#     rhsp = 0
-#     
-#     # create output file
-#     print("[pyBurgers: Setup] \t Creating output file")
-#     output = nc.Dataset('pyBurgersLES.nc','w')
-#     output.description = "pyBurgers LES output"
-#     output.source = "Jeremy A. Gibbs"
-#     output.history = "Created " + time.ctime(time.time())
-#     output.setncattr("sgs","%d"%model)
-#     
-#     # add dimensions
-#     output.createDimension('t')
-#     output.createDimension('x',nxLES)
-# 
-#     # add variables
-#     out_t = output.createVariable("t", "f4", ("t"))
-#     out_t.long_name = "time"
-#     out_t.units = "s"
-#     out_x = output.createVariable("x", "f4", ("x"))
-#     out_x.long_name = "x-distance"
-#     out_x.units = "m"
-#     out_k = output.createVariable("tke", "f4", ("t"))
-#     out_k.long_name = "turbulence kinetic energy"
-#     out_k.units = "m2 s-2"
-#     out_c = output.createVariable("C", "f4", ("t"))
-#     out_c.long_name = "subgrid model coefficient"
-#     out_c.units = "--"
-#     out_ds = output.createVariable("diss_sgs", "f4", ("t"))
-#     out_ds.long_name = "subgrid dissipation"
-#     out_ds.units = "m2 s-3"
-#     out_dm = output.createVariable("diss_mol", "f4", ("t"))
-#     out_dm.long_name = "molecular dissipation"
-#     out_dm.units = "m2 s-3"
-#     out_ep = output.createVariable("ens_prod", "f4", ("t"))
-#     out_ep.long_name = "enstrophy production"
-#     out_ep.units = "s-3"
-#     out_eds = output.createVariable("ens_diss_sgs", "f4", ("t"))
-#     out_eds.long_name = "subgrid enstrophy dissipation"
-#     out_eds.units = "s-3"
-#     out_edm = output.createVariable("ens_diss_mol", "f4", ("t"))
-#     out_edm.long_name = "molecular enstrophy dissipation"
-#     out_edm.units = "s-3"
-#     out_u = output.createVariable("u", "f4", ("t","x"))
-#     out_u.long_name = "velocity"
-#     out_u.units = "m s-1"
-# 
-#     # write x data
-#     out_x[:] = np.arange(0,2*np.pi,dx)
-#  
-#     # time loop
-#     save_t = 0
-#     for t in range(int(nt)):
-#         
-#         # update progress
-#         if (t==0 or (t+1)%1000==0):
-#             stdout.write("\r[pyBurgers: LES] \t Running for time %07d of %d"%(t+1,int(nt)))
-#             stdout.flush()
-#         
-#         # compute derivatives
-#         derivs = utils.derivative(u,dx)
-#         dudx   = derivs['dudx']
-#         du2dx  = derivs['du2dx']
-#         d2udx2 = derivs['d2udx2']
-#         d3udx3 = derivs['d3udx3']
-# 
-#         # add fractional Brownian motion (FBM) noise
-#         fbm  = utils.noise(0.75,nxDNS)
-#         fbmf = utils.filterDown(fbm,int(nxDNS/nxLES))
-# 
-#         # compute subgrid terms
-#         sgs    = LES.subgrid(u,dudx,dx,kr)
-#         tau    = sgs["tau"]
-#         coeff  = sgs["coeff"]
-#         if model==4:
-#             kr = sgs["kr"]
-#         dtaudx = utils.derivative(tau,dx)["dudx"]
-# 
-#         # compute right hand side
-#         rhs = visc * d2udx2 - 0.5*du2dx + np.sqrt(2*damp/dt)*fbmf - 0.5*dtaudx
-#         
-#         # time integration
-#         if t == 0:
-#             # Euler for first time step
-#             u_new = u + dt*rhs
-#         else:
-#             # 2nd-order Adams-Bashforth
-#             u_new = u + dt*(1.5*rhs - 0.5*rhsp)
-#         
-#         # set Nyquist to zero
-#         fu_new     = np.fft.fft(u_new)
-#         fu_new[mp] = 0
-#         u_new      = np.real(np.fft.ifft(fu_new))
-#         u          = u_new
-#         rhsp       = rhs
-# 
-#         # output to file every 1000 time steps (0.1 seconds)
-#         if ((t+1)%1000==0):
-#             
-#             # kinetic energy
-#             tke  = 0.5*np.var(u)
-# 
-#             # dissipation
-#             diss_sgs = np.mean(-tau*dudx)
-#             diss_mol = np.mean(visc*dudx**2)
-# 
-#             # enstrophy
-#             ens_prod = np.mean(dudx**3)
-#             ens_dsgs = np.mean(-tau*d3udx3)
-#             ens_dmol = np.mean(visc*d2udx2**2)
-#             
-#             # save to disk
-#             out_t[save_t]   = (t+1)*dt 
-#             out_k[save_t]   = tke
-#             out_c[save_t]   = coeff
-#             out_ds[save_t]  = diss_sgs
-#             out_dm[save_t]  = diss_mol
-#             out_ep[save_t]  = ens_prod
-#             out_eds[save_t] = ens_dsgs
-#             out_edm[save_t] = ens_dmol
-#             out_u[save_t,:] = u
-#             save_t += 1
-#     
-#     # time info
-#     t2 = time.time()
-#     tt = t2 - t1
-#     print("\n[pyBurgers: LES] \t Done! Completed in %0.2f seconds"%tt)
-#     print("##############################################################")
-# 
-# if __name__ == "__main__":
-#     main()
+        
+        # placeholder 
+        rhsp = 0
+        
+        # time loop
+        for t in range(1,30001):
+            
+            # get current time
+            looptime = t*self.dt
+            sys.stdout.write("\r[PyBurgers: Run] \t Running for time %05.2f of %05.2f"%(looptime,int(self.nt)*self.dt))
+            sys.stdout.flush()
+            
+            # compute derivative
+            # if save time, compute additional derivative
+            if (t%self.t_save==0):
+                derivatives = self.derivs.compute(self.u,[1,2,3,'sq'])
+                d3udx3      = derivatives['3']
+            else:
+                derivatives = self.derivs.compute(self.u,[1,2,'sq'])
+            
+            dudx   = derivatives['1']
+            du2dx  = derivatives['sq']
+            d2udx2 = derivatives['2']
+            
+            # add fractional Brownian motion (FBM) noise
+            # then filter noise from DNS to LES scales
+            noise = self.fbm.compute_noise()
+            noise = self.filter.downscale(noise,int(self.nxDNS/self.nx))
+            
+            # compute subgrid terms
+            sgs    = self.subgrid.compute(self.u, dudx, self.tke_sgs)
+            tau    = sgs["tau"]
+            coeff  = sgs["coeff"]
+
+            if self.model==4:
+                self.tke_sgs[:] = sgs["tke_sgs"]
+            sgsder = self.derivs.compute(tau,[1])
+            dtaudx   = sgsder['1']
+            
+            # compute right hand side
+            rhs = self.visc * d2udx2 - 0.5*du2dx + np.sqrt(2*self.namp/self.dt)*noise - 0.5*dtaudx
+            
+            # time integration
+            if t == 0:
+                # Euler for first time step
+                self.u[:] = self.u[:] + self.dt*rhs
+            else:
+                # 2nd-order Adams-Bashforth
+                self.u[:] = self.u[:] + self.dt*(1.5*rhs - 0.5*rhsp)
+            
+            # set Nyquist to zero
+            self.fft()
+            self.fu[self.mp] = 0
+            self.ifft()
+            
+            # set placeholder rhs to current value
+            rhsp = rhs
+            
+            # write output
+            if (t%self.t_save==0):
+                
+                # time index
+                t_out = int(t/self.t_save)
+                
+                # turbulence kinetic energy
+                self.tke[:] = np.var(self.u)
+                
+                # dissipation
+                self.diss_sgs[:] = np.mean(-tau*dudx)
+                self.diss_mol[:] = np.mean(self.visc*dudx**2)
+                
+                # enstrophy
+                self.ens_prod[:] = np.mean(dudx**3)
+                self.ens_dsgs[:] = np.mean(-tau*d3udx3)
+                self.ens_dmol[:] = np.mean(self.visc*d2udx2**2)
+                
+                # sgs coefficient
+                self.C_sgs[:] = coeff
+                
+                # save fields
+                self.output.save(self.output_fields,t_out,looptime,initial=False)
+        
+        # close output file       
+        self.output.close()

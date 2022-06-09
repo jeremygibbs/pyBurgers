@@ -84,6 +84,41 @@ class Output(object):
 				'dimension':("t",),
 				'long_name': 'turbulence kinetic energy',
 				'units': 'm2 s-2'
+			},
+			'tke_sgs': {
+				'dimension':("t",),
+				'long_name': 'subgrid turbulence kinetic energy',
+				'units': 'm2 s-2'
+			},
+			'C_sgs': {
+				'dimension':("t",),
+				'long_name': 'subgrid model coefficient',
+				'units': '--'
+			},
+			'diss_sgs': {
+				'dimension':("t",),
+				'long_name': 'subgrid dissipation',
+				'units': 'm2 s-3'
+			},
+			'diss_mol': {
+				'dimension':("t",),
+				'long_name': 'molecular dissipation',
+				'units': 'm2 s-3'
+			},
+			'ens_prod': {
+				'dimension':("t",),
+				'long_name': 'enstrophy production',
+				'units': 's-3'
+			},
+			'ens_diss_sgs': {
+				'dimension':("t",),
+				'long_name': 'subgrid enstrophy dissipation',
+				'units': 's-3'
+			},
+			'ens_diss_mol': {
+				'dimension':("t",),
+				'long_name': 'molecular enstrophy dissipation',
+				'units': 's-3'
 			}
 		}
 	

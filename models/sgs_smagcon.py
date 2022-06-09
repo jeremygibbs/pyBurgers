@@ -13,7 +13,7 @@ class SmagConstant(SGS):
 		super().__init__(input)
 		
 		# inform users of the sgs model type
-		print("[pyBurgers: SGS] \t Using the Constant-Coefficient Smagorinsky SGS Model")
+		print("[pyBurgers: SGS] \t Using the Smagorinsky model")
 		
 		# De-alias object
 		self.dealias = Dealias(self.nx)
@@ -26,6 +26,6 @@ class SmagConstant(SGS):
 		
 		# set sgs dictionary
 		self.sgs['tau']   = -2*cs2*(self.dx**2)*dudx2
-		self.sgs['coeff'] = np.sqrt(cs)
+		self.sgs['coeff'] = np.sqrt(cs2)
 		
 		return self.sgs

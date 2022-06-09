@@ -13,7 +13,7 @@ class SmagDynamic(SGS):
 		super().__init__(input)
 		
 		# inform users of the sgs model type
-		print("[pyBurgers: SGS] \t Using the Dynamic-Coefficient Smagorinsky SGS Model")
+		print("[pyBurgers: SGS] \t Using the Dynamic Smagorinsky model")
 		
 		# De-alias object
 		self.dealias = Dealias(self.nx)
