@@ -24,7 +24,8 @@ class SmagConstant(SGS):
 		cs2   = 0.16**2
 		dudx2 = self.dealias.compute(dudx)
 		
-		sgs['tau']   = -2*cs2*(self.dx**2)*dudx2
-		sgs['coeff'] = np.sqrt(cs)
+		# set sgs dictionary
+		self.sgs['tau']   = -2*cs2*(self.dx**2)*dudx2
+		self.sgs['coeff'] = np.sqrt(cs)
 		
 		return self.sgs

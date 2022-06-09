@@ -21,56 +21,37 @@ class Deardorff(SGS):
 		# Filtering object
 		self.filter = Filter(self.nx)
 		
+		# Derivatives object
+		self.derivs = Derivatives(self.nx,self.dx)
+		
 	# compute sgs terms
 	def compute(self,u,dudx,tke_sgs):
 		
+		# Constants
 		ce = 0.70
 		c1 = 0.10
 		
+		# dealias to get dudx^2
+		dudx2 = self.dealias.compute(dudx)
 		
-		uf    = self.filter.box(u,2)
-		uuf   = self.filter.box(u**2,2)
-		L11   = uuf - uf*uf
-		dudxf = self.filter.box(dudx,2)
-		M11   = 2*(self.dx**(4/3))*dudxf*(1-2**(4/3))
+		# compute derivative
+		derivs_k  = self.derivs.compute(tke_sgs,[1])
+		dkdx      = derivs_k['1']
 		
-		if np.mean(M11*M11) == 0:
-			cwl = 0
-		else:
-			cwl = np.mean(L11*M11)/np.mean(M11*M11)
-		if cwl < 0: 
-			cwl = 0
+		derivs_ku = self.derivs.compute(tke_sgs*self.u,[1])
+		dkudx     = derivs_ku['1']
 		
-		sgs['tau']   = -2*cwl*(self.dx**(4/3))*self.dealias.compute(dudx)
-		sgs['coeff'] = cwl
+		Vt  = c1*self.dx*(tke_sgs**0.5)
+		tau = -2.*Vt*dudx2
+		zz  = 2*Vt*dkdx
 		
+		derivs_zz = self.derivs.compute(zz,[1])
+		dzzdx     = derivs_zz["1"]
 		
-		dt = settings.dt                                  
-		d1 = utils.dealias1(np.abs(dudx),n)
-		d2 = utils.dealias1(dudx,n)
-		d3 = utils.dealias2(d1*d2,n)
+		dtke    = ((-1*dkudx)+(2*Vt*dudx2*dudx2)+dzzdx-(ce*(tke_sgs**1.5)/self.dx))*self.dt
+		tke_sgs = tke_sgs + dtke
 		
-		derivs_kru = utils.derivative(u*kr,dx)
-		derivs_kr  = utils.derivative(kr,dx)
-		dukrdx     = derivs_kru["dudx"]
-		dkrdx      = derivs_kr["dudx"]
-		
-		Vt  = C1*dx*(kr**0.5)
-		tau = -2.*Vt*d3
-		zz  = 2*Vt*dkrdx
-		
-		derivs_zz = utils.derivative(zz,dx)
-		dzzdx     = derivs_zz["dudx"]
-		
-		dkr  = ( (-1*dukrdx) + (2*Vt*d3*d3) + dzzdx - (Ce*(kr**1.5)/dx) ) * dt
-		kr   = kr + dkr
-		coeff = C1
-		
-		sgs = {
-			'tau'   :   tau,
-			'coeff' :   coeff,
-			'kr'    :   kr
-		}
-		return sgs
+		self.sgs['tau']   = tau
+		self.sgs['coeff'] = c1
 		
 		return self.sgs

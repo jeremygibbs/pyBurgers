@@ -209,7 +209,7 @@ class Filter(object):
 									flags=("FFTW_ESTIMATE",),
 									threads=1)
 		
-		def box(x,ratio):
+		def cutoff(x,ratio):
 			
 			# signal size information
 			m = int(n/ratio)

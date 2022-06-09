@@ -24,22 +24,25 @@ class WongLilly(SGS):
 	# compute sgs terms
 	def compute(self,u,dudx,tke_sgs):
 		
-		uf    = self.filter.box(u,2)
-		uuf   = self.filter.box(u**2,2)
+		# L11 term
+		uf    = self.filter.cutoff(u,2)
+		uuf   = self.filter.cutoff(u**2,2)
 		L11   = uuf - uf*uf
-		dudxf = self.filter.box(dudx,2)
-		M11   = 2*(self.dx**(4/3))*dudxf*(1-2**(4/3))
-		dudx2 = self.dealias.compute(dudx)
 		
+		# M11 term
+		dudxf = self.filter.cutoff(dudx,2)
+		M11   = self.dx**(4/3) * (1-2**(4/3)) * dudxf
+		
+		# Wong-Lilly coefficient		
 		if np.mean(M11*M11) == 0:
 			cwl = 0
 		else:
-			cwl = np.mean(L11*M11)/np.mean(M11*M11)
-		if cwl < 0: 
-			cwl = 0
+			cwl = 0.5 * np.mean(L11*M11)/np.mean(M11*M11)
+			if cwl < 0: 
+				cwl = 0
 		
-		sgs['tau']   = -2*cwl*(self.dx**(4/3))*dudx2
-		-2*CWL*((lam*dx)^(4/3))*dudx;
-		sgs['coeff'] = cwl
+		# set sgs dictionary		
+		self.sgs['tau']   = -2*cwl*(self.dx**(4/3))*dudx
+		self.sgs['coeff'] = cwl
 		
 		return self.sgs
