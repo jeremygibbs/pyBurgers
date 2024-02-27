@@ -18,7 +18,7 @@
 
 # pyBurgers
 * Many solutions exist for the 1D SBE
-* pyBurgers follows the procedures in [Basu (2009)](doc/basu_2009.pdf)
+* pyBurgers follows the procedures in [Basu (2009)](https://doi.org/10.1080/14685240902852719)
 * Fourier methods are used in space, and time is advanced in real space
   * Fourier collocation for spatial derivatives, 2nd-order Adams-Bashforth in time
 * Offers a direct numerical simulation (DNS) mode

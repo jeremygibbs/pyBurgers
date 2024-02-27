@@ -6,6 +6,8 @@ import numpy as np
 from models import DNS, LES
 from utils import io
 
+import cProfile
+
 # custom error message for user entry
 class InvalidMode(Exception):
 	pass 
@@ -56,7 +58,8 @@ if __name__ == "__main__":
 	t1 = time.time()
 	
 	# run the model
-	burgers.run()
+	cProfile.runctx('burgers.run()',globals(),locals())
+	#burgers.run()
 	
 	# time info
 	t2 = time.time()

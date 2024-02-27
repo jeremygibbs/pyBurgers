@@ -17,7 +17,7 @@ class FBM(object):
 		self.k[0] = 1
 		
 		# Configure pyfftw
-		fftw_nthreads = 1
+		fftw_nthreads = 4
 		fftw_planning = "FFTW_ESTIMATE"
 		
 		# pyfftw arrays
